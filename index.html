@@ -7,27 +7,35 @@
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
     /* ベーススタイル */
+    * {
+      box-sizing: border-box;
+    }
     body {
       background: #121212;
       color: #f1f1f1;
       font-family: 'Helvetica Neue', Arial, sans-serif;
       margin: 0;
       padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
       overflow: hidden;
     }
+    html, body {
+      height: 100%;
+    }
+    /* コンテナ（全画面表示） */
     .container {
       position: relative;
       background: #1e1e1e;
       padding: 20px;
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      width: 100%;
+      height: 100vh;
       max-width: 480px;
-      width: 90%;
+      margin: 0 auto;
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
       z-index: 2;
     }
     header h1 {
@@ -40,7 +48,7 @@
     }
     /* QRコードリーダーエリア */
     #qr-reader {
-      width: 100%;
+      width: 90%;
       max-width: 300px;
       margin: 20px auto;
       border: 2px solid #333;
@@ -68,16 +76,14 @@
     /* 裏物語表示エリア */
     #story {
       margin-top: 20px;
-      /* 固定の高さとスクロール対応 */
-      min-height: 150px;
-      max-height: 250px;
+      flex-grow: 1;
       overflow-y: auto;
       text-align: left;
       padding: 10px;
       background: #141414;
       border-radius: 5px;
     }
-    /* アニメーション用のkeyframes */
+    /* アニメーション用 */
     @keyframes slideIn {
       from {
         transform: translateX(-20px);
@@ -94,7 +100,7 @@
       margin: 10px 0;
       border-left: 4px solid #008CBA;
       padding-left: 10px;
-      opacity: 0; /* 初期は非表示 */
+      opacity: 0;
     }
     .story-line.visible {
       opacity: 1;
@@ -112,7 +118,7 @@
       50% { opacity: 0; }
       100% { opacity: 1; }
     }
-    /* 全画面に作用するオーバーレイ（既存のアニメーション） */
+    /* 全画面オーバーレイ（既存のアニメーション） */
     #global-overlay {
       position: fixed;
       top: 0;
@@ -125,18 +131,9 @@
       opacity: 0;
     }
     @keyframes globalFlash {
-      0% {
-        opacity: 0;
-        transform: scale(0.8);
-      }
-      50% {
-        opacity: 1;
-        transform: scale(1.2);
-      }
-      100% {
-        opacity: 0;
-        transform: scale(1);
-      }
+      0% { opacity: 0; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 0; transform: scale(1); }
     }
     /* チェックマーク用オーバーレイ */
     #success-checkmark {
@@ -158,17 +155,33 @@
       animation: checkmarkAnim 1s ease-out forwards;
     }
     @keyframes checkmarkAnim {
-      0% {
-        transform: scale(0.5);
-        opacity: 0;
+      0% { transform: scale(0.5); opacity: 0; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(1); opacity: 0; }
+    }
+    /* スマホ用調整 */
+    @media (max-width: 600px) {
+      .container {
+        width: 100%;
+        height: 100vh;
+        padding: 10px;
       }
-      50% {
-        transform: scale(1.2);
-        opacity: 1;
+      header h1 {
+        font-size: 1.8em;
       }
-      100% {
-        transform: scale(1);
-        opacity: 0;
+      header p {
+        font-size: 0.9em;
+      }
+      button {
+        padding: 10px 16px;
+        font-size: 0.9em;
+      }
+      #qr-reader {
+        width: 80%;
+        margin: 10px auto;
+      }
+      .story-line {
+        font-size: 1em;
       }
     }
   </style>
@@ -205,7 +218,7 @@
   </div>
   
   <script>
-    // 裏物語の各セグメント（内容は必要に応じて変更してください）
+    // 裏物語の各セグメント
     const storySegments = [
       "かつて、この場所には禁断の秘密が隠されていた…",
       "夜の闇に紛れ、真実は静かに語りかける…",
@@ -213,24 +226,22 @@
       "さあ、闇夜に眠る物語を紐解いてみよう…"
     ];
     let currentSegment = 0;
-    // スキャン済みのQRコードの内容を保持するSet（同一QRコードは重複処理しない）
+    // スキャン済みのQRコード内容を保持するSet（重複処理防止）
     const scannedCodes = new Set();
     const storyContainer = document.getElementById("story");
-    let html5QrcodeScanner; // グローバルで扱えるように定義
+    let html5QrcodeScanner; // グローバルに定義
 
-    // 全画面オーバーレイのアニメーションを実行する関数（既存）
+    // 全画面オーバーレイアニメーション（既存）
     function showGlobalOverlay() {
       const overlay = document.getElementById("global-overlay");
       overlay.style.animation = "globalFlash 1.5s ease-out";
-      setTimeout(() => {
-        overlay.style.animation = "";
-      }, 1500);
+      setTimeout(() => { overlay.style.animation = ""; }, 1500);
     }
     
-    // チェックマークのアニメーションを実行する関数
+    // チェックマークアニメーション（既存）
     function showSuccessCheckmark() {
       const checkmark = document.getElementById("success-checkmark");
-      checkmark.innerHTML = "<span>&#10003;</span>"; // チェックマーク（✓）
+      checkmark.innerHTML = "<span>&#10003;</span>";
       checkmark.style.opacity = "1";
       setTimeout(() => {
         checkmark.style.opacity = "0";
@@ -238,7 +249,7 @@
       }, 1000);
     }
     
-    // タイピングエフェクトを実行する関数
+    // タイピングエフェクト
     function typeText(element, text, callback) {
       element.innerHTML = "";
       let index = 0;
@@ -248,22 +259,21 @@
           index++;
           setTimeout(addLetter, 50);
         } else {
-          element.innerHTML = text; // カーソルを消す
+          element.innerHTML = text;
           if (callback) callback();
         }
       }
       addLetter();
     }
-
-    // 裏物語のセグメントを表示する関数（タイピングエフェクト付き）
+    
+    // タイピングエフェクト付きで裏物語セグメントを表示
     function addStorySegment(segment) {
       const p = document.createElement("p");
       p.className = "story-line";
       storyContainer.appendChild(p);
-      // タイピングエフェクトでテキストを表示
       typeText(p, segment);
     }
-
+    
     // QRコード読み取り成功時のコールバック
     function onScanSuccess(decodedText, decodedResult) {
       if (scannedCodes.has(decodedText)) return;
@@ -279,7 +289,7 @@
         addStorySegment("全ての物語が明かされました。");
       }
     }
-
+    
     // スキャン開始ボタンの処理
     document.getElementById("start-button").addEventListener("click", () => {
       document.getElementById("start-section").style.display = "none";
@@ -288,14 +298,9 @@
       html5QrcodeScanner = new Html5Qrcode("qr-reader");
       html5QrcodeScanner.start(
         { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: 250
-        },
+        { fps: 10, qrbox: 250 },
         onScanSuccess
-      ).catch(err => {
-        console.error("QRコードスキャン開始エラー:", err);
-      });
+      ).catch(err => { console.error("QRコードスキャン開始エラー:", err); });
     });
   </script>
 </body>
