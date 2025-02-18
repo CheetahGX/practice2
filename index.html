@@ -2,36 +2,38 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <!-- スマートフォン向けのviewport設定 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>裏物語発見！</title>
   <!-- Html5Qrcodeライブラリの読み込み -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
-    /* ベーススタイル */
+    /* 基本リセット */
     * {
       box-sizing: border-box;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
     }
     body {
       background: #121212;
       color: #f1f1f1;
       font-family: 'Helvetica Neue', Arial, sans-serif;
-      margin: 0;
-      padding: 0;
       overflow: hidden;
     }
-    html, body {
-      height: 100%;
-    }
-    /* コンテナ（全画面表示） */
+    /* 全画面コンテナ */
     .container {
       position: relative;
-      background: #1e1e1e;
+      width: 100%;
+      max-width: 480px;
+      height: 100vh;
+      margin: 0 auto;
       padding: 20px;
+      background: #1e1e1e;
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-      width: 100%;
-      height: 100vh;
-      max-width: 480px;
-      margin: 0 auto;
       text-align: center;
       display: flex;
       flex-direction: column;
@@ -62,7 +64,7 @@
     button {
       background-color: #008CBA;
       border: none;
-      color: white;
+      color: #fff;
       padding: 10px 20px;
       font-size: 1em;
       border-radius: 5px;
@@ -83,7 +85,7 @@
       background: #141414;
       border-radius: 5px;
     }
-    /* アニメーション用 */
+    /* ストーリー行のスライドインアニメーション */
     @keyframes slideIn {
       from {
         transform: translateX(-20px);
@@ -118,7 +120,7 @@
       50% { opacity: 0; }
       100% { opacity: 1; }
     }
-    /* 全画面オーバーレイ（既存のアニメーション） */
+    /* 全画面オーバーレイ（グローバルフラッシュ） */
     #global-overlay {
       position: fixed;
       top: 0;
@@ -159,11 +161,9 @@
       50% { transform: scale(1.2); opacity: 1; }
       100% { transform: scale(1); opacity: 0; }
     }
-    /* スマホ用調整 */
+    /* スマホ用レスポンシブ調整 */
     @media (max-width: 600px) {
       .container {
-        width: 100%;
-        height: 100vh;
         padding: 10px;
       }
       header h1 {
@@ -187,7 +187,7 @@
   </style>
 </head>
 <body>
-  <!-- 全画面オーバーレイ（既存のアニメーション用） -->
+  <!-- 全画面オーバーレイ（グローバルフラッシュ用） -->
   <div id="global-overlay"></div>
   <!-- チェックマークオーバーレイ -->
   <div id="success-checkmark"></div>
@@ -201,12 +201,12 @@
       </p>
     </header>
     
-    <!-- スキャン開始前の説明とボタン -->
+    <!-- スタートボタン -->
     <section id="start-section">
       <button id="start-button">スキャン開始</button>
     </section>
     
-    <!-- QRコードリーダー表示エリア -->
+    <!-- QRコードリーダーエリア -->
     <section id="qr-section" style="display: none;">
       <div id="qr-reader"></div>
     </section>
@@ -226,19 +226,19 @@
       "さあ、闇夜に眠る物語を紐解いてみよう…"
     ];
     let currentSegment = 0;
-    // スキャン済みのQRコード内容を保持するSet（重複処理防止）
+    // スキャン済みのQRコード内容を保持（重複防止）
     const scannedCodes = new Set();
     const storyContainer = document.getElementById("story");
     let html5QrcodeScanner; // グローバルに定義
 
-    // 全画面オーバーレイアニメーション（既存）
+    // 全画面オーバーレイ（グローバルフラッシュ）の実行
     function showGlobalOverlay() {
       const overlay = document.getElementById("global-overlay");
       overlay.style.animation = "globalFlash 1.5s ease-out";
       setTimeout(() => { overlay.style.animation = ""; }, 1500);
     }
     
-    // チェックマークアニメーション（既存）
+    // チェックマークアニメーションの実行
     function showSuccessCheckmark() {
       const checkmark = document.getElementById("success-checkmark");
       checkmark.innerHTML = "<span>&#10003;</span>";
@@ -249,7 +249,7 @@
       }, 1000);
     }
     
-    // タイピングエフェクト
+    // タイピングエフェクト：1文字ずつ表示
     function typeText(element, text, callback) {
       element.innerHTML = "";
       let index = 0;
@@ -259,7 +259,7 @@
           index++;
           setTimeout(addLetter, 50);
         } else {
-          element.innerHTML = text;
+          element.innerHTML = text; // カーソル消去
           if (callback) callback();
         }
       }
@@ -274,7 +274,7 @@
       typeText(p, segment);
     }
     
-    // QRコード読み取り成功時のコールバック
+    // QRコード読み取り成功時の処理
     function onScanSuccess(decodedText, decodedResult) {
       if (scannedCodes.has(decodedText)) return;
       scannedCodes.add(decodedText);
@@ -290,7 +290,7 @@
       }
     }
     
-    // スキャン開始ボタンの処理
+    // スキャン開始ボタンのイベント処理
     document.getElementById("start-button").addEventListener("click", () => {
       document.getElementById("start-section").style.display = "none";
       document.getElementById("qr-section").style.display = "block";
@@ -300,7 +300,9 @@
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
         onScanSuccess
-      ).catch(err => { console.error("QRコードスキャン開始エラー:", err); });
+      ).catch(err => {
+        console.error("QRコードスキャン開始エラー:", err);
+      });
     });
   </script>
 </body>
