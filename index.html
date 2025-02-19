@@ -191,15 +191,16 @@
     }
     /* 最終演出メッセージ */
     #final-message {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 5em;  /* フォントサイズを大きく */
-      color: #aaffaa;  /* 淡い緑色 */
-      opacity: 0;
-      text-shadow: 0 0 20px #aaffaa, 0 0 30px #aaffaa;  /* グロー効果 */
-      animation: finalMessageAnimation 4s ease-out forwards 1s;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap; /* 追加：テキストの折り返しを防止 */
+    font-size: 5em;  /* フォントサイズを大きく */
+    color: #aaffaa;  /* 淡い緑色 */
+    opacity: 0;
+    text-shadow: 0 0 20px #aaffaa, 0 0 30px #aaffaa;  /* グロー効果 */
+    animation: finalMessageAnimation 4s ease-out forwards 1s;
     }
     @keyframes finalMessageAnimation {
       0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
