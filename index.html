@@ -169,52 +169,47 @@
     }
     /* 最終演出用オーバーレイ */
     #final-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8); /* 背景を暗くしてコントラストアップ */
-    z-index: 100000;
-    display: none;
-    opacity: 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8); /* 背景を暗くしてコントラストアップ */
+      z-index: 100000;
+      display: none;
+      opacity: 0;
     }
-
     #final-overlay.show {
-    display: block;
-    animation: finalOverlayAnimation 5s ease-out forwards;
+      display: block;
+      animation: finalOverlayAnimation 5s ease-out forwards;
     }
-
     @keyframes finalOverlayAnimation {
-    0% { opacity: 0; }
-    20% { opacity: 1; }
-    80% { opacity: 1; }
-    100% { opacity: 0; }
+      0% { opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { opacity: 0; }
     }
-
     /* 最終演出メッセージ */
     #final-message {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 5em;  /* フォントサイズを大きく */
-    color: #aaffaa;  /* 淡い緑色 */
-    opacity: 0;
-    text-shadow: 0 0 20px #aaffaa, 0 0 30px #aaffaa;  /* グロー効果 */
-    animation: finalMessageAnimation 4s ease-out forwards 1s;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 5em;  /* フォントサイズを大きく */
+      color: #aaffaa;  /* 淡い緑色 */
+      opacity: 0;
+      text-shadow: 0 0 20px #aaffaa, 0 0 30px #aaffaa;  /* グロー効果 */
+      animation: finalMessageAnimation 4s ease-out forwards 1s;
     }
-
     @keyframes finalMessageAnimation {
-        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-        30% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-        45% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.8); }
-        55% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-        70% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.8); }
-        80% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-        100% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+      30% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+      45% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.8); }
+      55% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+      70% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.8); }
+      80% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
     }
-
     @keyframes messageAppear {
       0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
       50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
@@ -232,6 +227,11 @@
       #qr-reader { max-width: 250px; margin: 15px auto; }
       button { padding: 8px 16px; font-size: 0.9em; }
       #story { max-height: 200px; font-size: 0.95em; }
+      /* 最終演出メッセージ：改行せずに3文字表示 */
+      #final-message {
+        white-space: nowrap;
+        font-size: 4em; /* スマホでの表示に合わせて調整 */
+      }
     }
   </style>
 </head>
@@ -276,7 +276,6 @@
   </div>
   
   <script>
-    
     // 裏物語の各セグメント
     const storySegments = [
       "呪いとは、なんなのだろう。",
@@ -346,35 +345,34 @@
     
     // タイピングエフェクト（新規文が追加される前にスクロール）
     function typeText(element, text, callback) {
-    element.innerHTML = "";
-    let index = 0;
-    function addLetter() {
+      element.innerHTML = "";
+      let index = 0;
+      function addLetter() {
         if (index < text.length) {
-        element.innerHTML = text.substring(0, index + 1) + '<span class="typing-cursor">|</span>';
-        index++;
-        // 文章が更新されるたびにスクロール位置を下部に移動
-        storyContainer.scrollTop = storyContainer.scrollHeight;
-        setTimeout(addLetter, 50);
+          element.innerHTML = text.substring(0, index + 1) + '<span class="typing-cursor">|</span>';
+          index++;
+          // 文章が更新されるたびにスクロール位置を下部に移動
+          storyContainer.scrollTop = storyContainer.scrollHeight;
+          setTimeout(addLetter, 50);
         } else {
-        element.innerHTML = text;
-        // 最終的にスクロール位置を下部に固定
-        storyContainer.scrollTop = storyContainer.scrollHeight;
-        if (callback) callback();
+          element.innerHTML = text;
+          // 最終的にスクロール位置を下部に固定
+          storyContainer.scrollTop = storyContainer.scrollHeight;
+          if (callback) callback();
         }
+      }
+      addLetter();
     }
-    addLetter();
-    }
-
+    
     // 裏物語のセグメントを表示（コールバック追加）
     function addStorySegment(segment, callback) {
-    const p = document.createElement("p");
-    p.className = "story-line";
-    storyContainer.appendChild(p);
-    // コンテナのスクロール位置を更新して、最新の段落が見えるようにする
-    storyContainer.scrollTop = storyContainer.scrollHeight;
-    typeText(p, segment, callback);
+      const p = document.createElement("p");
+      p.className = "story-line";
+      storyContainer.appendChild(p);
+      // コンテナのスクロール位置を更新して、最新の段落が見えるようにする
+      storyContainer.scrollTop = storyContainer.scrollHeight;
+      typeText(p, segment, callback);
     }
-
     
     // 効果音（初期設定：sine wave, 880Hz, 0.2秒）
     function playSuccessSound() {
@@ -392,21 +390,21 @@
     
     // 最終演出：QR読み取り停止後、全画面がチカチカして、「全達成」が淡い緑色で表示される
     function triggerFinalAnimation() {
-    // 1.2秒（1200ms）後に最終演出を開始
-    setTimeout(() => {
+      // 1.2秒（1200ms）後に最終演出を開始
+      setTimeout(() => {
         // 読み取り停止
         html5QrcodeScanner.stop().then(() => {
-        document.getElementById("qr-section").style.display = "none";
+          document.getElementById("qr-section").style.display = "none";
         }).catch(err => {
-        console.error("QRコードスキャン停止エラー:", err);
+          console.error("QRコードスキャン停止エラー:", err);
         });
         // 最終演出用オーバーレイを表示
         const finalOverlay = document.getElementById("final-overlay");
         finalOverlay.innerHTML = "<div id='final-message'>全達成</div>";
         finalOverlay.classList.add("show");
-    }, 1200);
+      }, 1200);
     }
-
+    
     // 最終演出用オーバーレイ終了時処理
     document.getElementById("final-overlay").addEventListener("animationend", () => {
       document.getElementById("final-overlay").style.display = "none";
