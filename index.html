@@ -71,6 +71,23 @@
       background-color: #005f73;
       transform: scale(1.05);
     }
+    /* 進捗バー */
+    .progress-container {
+      width: 100%;
+      height: 30px;
+      background: #444;
+      border-radius: 15px;
+      overflow: hidden;
+      margin: 10px auto;
+    }
+    .progress-bar {
+      position: relative;
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(270deg, #00f, #00ffff);
+      background-size: 200% 100%;
+      transition: width 1s ease;
+    }
     /* 裏物語表示エリア */
     #story {
       margin-top: 20px;
@@ -84,14 +101,8 @@
     }
     /* アニメーション用のkeyframes */
     @keyframes slideIn {
-      from {
-        transform: translateX(-20px);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
+      from { transform: translateX(-20px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
     .story-line {
       animation: slideIn 0.8s ease-out forwards;
@@ -101,9 +112,7 @@
       padding-left: 10px;
       opacity: 0;
     }
-    .story-line.visible {
-      opacity: 1;
-    }
+    .story-line.visible { opacity: 1; }
     /* タイピングカーソル */
     .typing-cursor {
       display: inline-block;
@@ -158,6 +167,59 @@
       50% { transform: scale(1.2); opacity: 1; }
       100% { transform: scale(1); opacity: 0; }
     }
+    /* 最終演出用オーバーレイ */
+    #final-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8); /* 背景を暗くしてコントラストアップ */
+    z-index: 100000;
+    display: none;
+    opacity: 0;
+    }
+
+    #final-overlay.show {
+    display: block;
+    animation: finalOverlayAnimation 5s ease-out forwards;
+    }
+
+    @keyframes finalOverlayAnimation {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+    }
+
+    /* 最終演出メッセージ */
+    #final-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 5em;  /* フォントサイズを大きく */
+    color: #aaffaa;  /* 淡い緑色 */
+    opacity: 0;
+    text-shadow: 0 0 20px #aaffaa, 0 0 30px #aaffaa;  /* グロー効果 */
+    animation: finalMessageAnimation 4s ease-out forwards 1s;
+    }
+
+    @keyframes finalMessageAnimation {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+        30% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+        45% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.8); }
+        55% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+        70% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.8); }
+        80% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+        100% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    }
+
+    @keyframes messageAppear {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
     /* スマホ向け調整 */
     @media (max-width: 600px) {
       .container {
@@ -178,6 +240,8 @@
   <div id="global-overlay"></div>
   <!-- チェックマークオーバーレイ -->
   <div id="success-checkmark"></div>
+  <!-- 最終演出用オーバーレイ -->
+  <div id="final-overlay"></div>
   
   <div class="container">
     <header>
@@ -198,6 +262,13 @@
       <div id="qr-reader"></div>
     </section>
     
+    <!-- 進捗バー -->
+    <section id="progress-section" style="display: none;">
+      <div class="progress-container">
+        <div class="progress-bar"></div>
+      </div>
+    </section>
+    
     <!-- 裏物語表示エリア -->
     <section id="story-section">
       <div id="story"></div>
@@ -205,7 +276,8 @@
   </div>
   
   <script>
-    // 裏物語の各セグメント（内容は必要に応じて変更してください）
+    
+    // 裏物語の各セグメント
     const storySegments = [
       "呪いとは、なんなのだろう。",
       "それは、人の心から生まれる。",
@@ -219,22 +291,49 @@
       "「信じる心」それは、過去から受け継がれる、果てしなく強大な呪いだ。",
       "人は時に、根も葉もない噂話を「信じる」。例えそれが他人を傷つけようとも、「信じた」ものを疑わない。",
       "朧月、それは「信じる心」を人が知覚した存在だ。",
-      "そして、最後に一つ覚えていて欲しい。朧月とは、「信じる心」から生まれた果てしなく強大な呪いであり、いつまでも、あなたと共にあるということを。",
+      "そして、最後に一つ覚えていて欲しい。朧月とは、「信じる心」から生まれた果てしなく強大な呪いであり、いつまでも、あなたと共にあるということを。"
     ];
     let currentSegment = 0;
-    // スキャン済みのQRコードの内容を保持するSet（同一QRコードは重複処理しない）
+    // 重複処理防止用Set
     const scannedCodes = new Set();
     const storyContainer = document.getElementById("story");
-    let html5QrcodeScanner; // グローバルで扱えるように定義
-
-    // 全画面オーバーレイのアニメーションを実行する関数
+    let html5QrcodeScanner;
+    
+    // 進捗バー用グローバル変数（物理シミュレーション用）
+    let currentProgress = 0;
+    let targetProgress = 0;
+    let velocity = 0;
+    
+    // ターゲット進捗更新
+    function updateProgress() {
+      targetProgress += 100 / storySegments.length;
+      if (targetProgress > 100) targetProgress = 100;
+    }
+    
+    // スプリングダイナミクス風進捗更新
+    function animateProgress() {
+      const stiffness = 0.1;
+      const damping = 0.8;
+      const delta = targetProgress - currentProgress;
+      velocity += delta * stiffness;
+      velocity *= damping;
+      currentProgress += velocity;
+      if (Math.abs(targetProgress - currentProgress) < 0.1) {
+        currentProgress = targetProgress;
+        velocity = 0;
+      }
+      document.querySelector(".progress-bar").style.width = currentProgress + "%";
+      requestAnimationFrame(animateProgress);
+    }
+    
+    // 全画面オーバーレイ
     function showGlobalOverlay() {
       const overlay = document.getElementById("global-overlay");
       overlay.style.animation = "globalFlash 1.5s ease-out";
       setTimeout(() => { overlay.style.animation = ""; }, 1500);
     }
     
-    // チェックマークのアニメーションを実行する関数
+    // チェックマーク
     function showSuccessCheckmark() {
       const checkmark = document.getElementById("success-checkmark");
       checkmark.innerHTML = "<span>&#10003;</span>";
@@ -245,49 +344,102 @@
       }, 1000);
     }
     
-    // タイピングエフェクトを実行する関数
+    // タイピングエフェクト（新規文が追加される前にスクロール）
     function typeText(element, text, callback) {
-      element.innerHTML = "";
-      let index = 0;
-      function addLetter() {
+    element.innerHTML = "";
+    let index = 0;
+    function addLetter() {
         if (index < text.length) {
-          element.innerHTML = text.substring(0, index + 1) + '<span class="typing-cursor">|</span>';
-          index++;
-          setTimeout(addLetter, 50);
+        element.innerHTML = text.substring(0, index + 1) + '<span class="typing-cursor">|</span>';
+        index++;
+        // 文章が更新されるたびにスクロール位置を下部に移動
+        storyContainer.scrollTop = storyContainer.scrollHeight;
+        setTimeout(addLetter, 50);
         } else {
-          element.innerHTML = text;
-          if (callback) callback();
+        element.innerHTML = text;
+        // 最終的にスクロール位置を下部に固定
+        storyContainer.scrollTop = storyContainer.scrollHeight;
+        if (callback) callback();
         }
-      }
-      addLetter();
+    }
+    addLetter();
+    }
+
+    // 裏物語のセグメントを表示（コールバック追加）
+    function addStorySegment(segment, callback) {
+    const p = document.createElement("p");
+    p.className = "story-line";
+    storyContainer.appendChild(p);
+    // コンテナのスクロール位置を更新して、最新の段落が見えるようにする
+    storyContainer.scrollTop = storyContainer.scrollHeight;
+    typeText(p, segment, callback);
+    }
+
+    
+    // 効果音（初期設定：sine wave, 880Hz, 0.2秒）
+    function playSuccessSound() {
+      const context = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      oscillator.frequency.value = 880;
+      oscillator.type = 'sine';
+      oscillator.start();
+      gainNode.gain.setValueAtTime(0.3, context.currentTime);
+      oscillator.stop(context.currentTime + 0.2);
     }
     
-    // 裏物語のセグメントを表示する関数
-    function addStorySegment(segment) {
-      const p = document.createElement("p");
-      p.className = "story-line";
-      storyContainer.appendChild(p);
-      typeText(p, segment);
+    // 最終演出：QR読み取り停止後、全画面がチカチカして、「全達成」が淡い緑色で表示される
+    function triggerFinalAnimation() {
+    // 1.2秒（1200ms）後に最終演出を開始
+    setTimeout(() => {
+        // 読み取り停止
+        html5QrcodeScanner.stop().then(() => {
+        document.getElementById("qr-section").style.display = "none";
+        }).catch(err => {
+        console.error("QRコードスキャン停止エラー:", err);
+        });
+        // 最終演出用オーバーレイを表示
+        const finalOverlay = document.getElementById("final-overlay");
+        finalOverlay.innerHTML = "<div id='final-message'>全達成</div>";
+        finalOverlay.classList.add("show");
+    }, 1200);
     }
+
+    // 最終演出用オーバーレイ終了時処理
+    document.getElementById("final-overlay").addEventListener("animationend", () => {
+      document.getElementById("final-overlay").style.display = "none";
+    });
     
-    // QRコード読み取り成功時のコールバック
+    // QRコード読み取り成功時
     function onScanSuccess(decodedText, decodedResult) {
       if (scannedCodes.has(decodedText)) return;
       scannedCodes.add(decodedText);
+      
       showGlobalOverlay();
       showSuccessCheckmark();
+      playSuccessSound();
+      updateProgress();
+      
       if (currentSegment < storySegments.length) {
-        addStorySegment(storySegments[currentSegment]);
+        // 最後のセグメントの場合、表示完了後に最終演出をトリガーする
+        if (currentSegment === storySegments.length - 1) {
+          addStorySegment(storySegments[currentSegment], triggerFinalAnimation);
+        } else {
+          addStorySegment(storySegments[currentSegment]);
+        }
         currentSegment++;
-      } else {
-        addStorySegment("全ての物語が明かされました。");
       }
     }
     
-    // スキャン開始ボタンの処理（表示が完全に反映されるまでの遅延を500msに延長）
+    // スキャン開始ボタン処理（500ms遅延）
     document.getElementById("start-button").addEventListener("click", () => {
       document.getElementById("start-section").style.display = "none";
       document.getElementById("qr-section").style.display = "block";
+      document.getElementById("progress-section").style.display = "block";
+      
+      animateProgress();
       
       setTimeout(() => {
         html5QrcodeScanner = new Html5Qrcode("qr-reader");
